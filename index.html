@@ -406,6 +406,24 @@
     font-family: 'DM Mono', monospace;
   }
 
+  /* ══ NOW LINE ══ */
+  .now-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: #e03535;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .now-line::before {
+    content: '';
+    position: absolute;
+    left: -1px; top: -4px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #e03535;
+  }
+
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -670,6 +688,17 @@ function setZoom(delta) {
   scrollToCurrentHour();
 }
 
+function nowLinePx() {
+  const now = new Date();
+  const totalMins = now.getHours() * 60 + now.getMinutes();
+  return (totalMins / SLOT_MIN) * slotH();
+}
+
+function tickNowLine() {
+  const line = document.getElementById('nowLine');
+  if (line) line.style.top = nowLinePx() + 'px';
+}
+
 function scrollToCurrentHour() {
   const content = document.getElementById('calContent');
   if (!content) return;
@@ -706,7 +735,8 @@ function renderCalendar() {
   h+=`</div><div class="cal-days" style="display:grid;grid-template-columns:${dates.map(()=>'1fr').join(' ')}">`;
 
   dates.forEach(d=>{
-    h+=`<div class="cal-dc" style="position:relative;">`;
+    const isToday = dk(d)===todDk;
+    h+=`<div class="cal-dc" style="position:relative;" ${isToday?'id="todayCol"':''}>`;
     // Draw 96 grid slots (24hr × 4 per hr)
     for(let i=0;i<96;i++){
       const hr=Math.floor(i/4), mn=(i%4)*15;
@@ -742,6 +772,8 @@ function renderCalendar() {
         ${showText && tn ? `<div class="ev-tags">${tn}</div>` : ''}
       </div>`;
     }
+    // Now line — only on today's column
+    if(isToday) h+=`<div class="now-line" id="nowLine" style="top:${nowLinePx()}px"></div>`;
     h+=`</div>`;
   });
 
@@ -968,7 +1000,8 @@ function mkPie(s,tot) {
 
 renderCalendar();
 renderDrawer();
-setTimeout(scrollToCurrentHour, 50); // after render paints
+setTimeout(scrollToCurrentHour, 50);
+setInterval(tickNowLine, 60000); // update every minute
 </script>
 </body>
 </html>
